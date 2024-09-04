@@ -23,9 +23,7 @@ int main(int argc, char **argv)
         std::getline(ss, date, ',');
         std::getline(ss, value, ',');
         if(!is_date_valid(date) || !is_value_valid(value))
-        {
             std::cerr << "Error: bad input => " << line << std::endl;
-        
         bitcoin[date] = std::atoi(value.c_str());
     }
     for (std::map<std::string, double>::iterator it = bitcoin.begin(); it != bitcoin.end(); ++it)

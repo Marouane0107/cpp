@@ -4,18 +4,17 @@
 bool    is_date_valid(std::string &date)
 {
 	if(date.empty())
-		return false;
+		return (false);
 	if(date.length() != 10)
-		return false;
+		return (false);
 	if(date[4] != '-' || date[7] != '-')
-		return false;
-	for(int i = 0; i < 10; i++){
-		if(i == 4 || i == 7)
-			continue;
-		if(date[i] < '0' || date[i] > '9')
-			return false;
-	}
-	return true;
+		return (false);
+	if (!isdigit(date[0]) || !isdigit(date[1]) || !isdigit(date[2]) || !isdigit(date[3]))
+		return (false);
+    if (!isdigit(date[5]) || !isdigit(date[6]) || !isdigit(date[8]) || !isdigit(date[9]))
+		return (false);
+
+	return (true);
 }
 
 bool    is_value_valid(std::string &value)
@@ -31,3 +30,20 @@ bool    is_value_valid(std::string &value)
 	return true;
 }
 
+string get_closest_date(std::string &input_date, std::map<std::string, double> &bitcoin)
+{
+	
+}
+
+double	get_result(std::string &input_date, std::string &db_date, std::string &input_value, std::string &exchange_rate)
+{
+	double result;
+	double value;
+	double exchange;
+	stringstream ss_value(input_value);
+	ss >> value;
+	stringstream ss_exchange_rate(exchange_rate);
+	ss_exchange_rate >> exchange;
+
+
+}
