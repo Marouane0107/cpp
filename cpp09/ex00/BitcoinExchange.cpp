@@ -21,16 +21,16 @@ BitcoinExchange &BitcoinExchange::operator=(const BitcoinExchange &copy)
 	return *this;
 }
 
-int BitcoinExchange::check_is_date_valid(std::string date)
+int BitcoinExchange::check_is_date_valid(std::string date, std::string input)
 {
 	if (date.size() != 10)
 	{
-		std::cerr << "Error: bad input => " << date << std::endl;
+		std::cerr << "Error: bad input => " << input << std::endl;
 		return 1;
 	}
 	if (date[4] != '-' || date[7] != '-')
 	{
-		std::cerr << "Error: bad input => " << date << std::endl;
+		std::cerr << "Error: bad input => " << input << std::endl;
 		return 1;
 	}
 	for (size_t i = 0; i < date.size(); i++)
@@ -39,10 +39,11 @@ int BitcoinExchange::check_is_date_valid(std::string date)
 			continue;
 		if (!isdigit(date[i]))
 		{
-			std::cerr << "Error: bad input => " << date << std::endl;
+			std::cerr << "Error: bad input => " << input << std::endl;
 			return 1;
 		}
 	}
+
 
 	return 0;
 }
@@ -105,9 +106,17 @@ int BitcoinExchange::check_if_line_is_valid(std::string line)
 	std::string date;
 	std::string pipe;
 	std::string value;
+	std::string tmp;
 	std::stringstream ss(line);
-	ss >> date >> pipe >> value;
-	if (check_is_date_valid(date))
+	ss >> date >> pipe >> value >> tmp;
+	if (!tmp.empty())
+	{
+		std::cerr << "Error: bad input => " << line << std::endl;
+		return 1;
+	}
+	if (date.empty() )
+		return 1;
+	if (check_is_date_valid(date, line))
 		return 1;
 	if (pipe != "|" || check_date_range(date))
 	{
@@ -152,6 +161,7 @@ void	BitcoinExchange::get_data(std::ifstream &file)
 	std::string key;
 	std::string pipe;
 	double value;
+
 	if (!file.is_open())
 	{
 		std::cerr << "Error: could not open file." << std::endl;
@@ -165,6 +175,7 @@ void	BitcoinExchange::get_data(std::ifstream &file)
 			std::istringstream iss(line);
 			iss >> key >> pipe >> value;
 			_file_data[key] = value;
+			value_multipliedby_exchangerate(key, value);
 		}
 	}
 	file.close();
@@ -195,12 +206,23 @@ void	BitcoinExchange::get_database(std::ifstream &file)
 	file.close();
 }
 
+bool BitcoinExchange::isLeapYear(int year)
+{
+    if (year % 4 == 0) {
+        if (year % 100 == 0) {
+            return year % 400 == 0;
+        }
+        return true;
+    }
+    return false;
+}
+
 int	BitcoinExchange::check_date_range(std::string date)
 {
 	std::string tmp;
-	double year;
-	double month;
-	double day;
+	int year;
+	int month;
+	int day;
 	
 	std::stringstream ss(date);
 	std::getline(ss, tmp, '-');
@@ -217,31 +239,95 @@ int	BitcoinExchange::check_date_range(std::string date)
 	if (year < 2009 || year > 2022 || month < 1 || month > 12 || day < 1 || day > 31)
 		return 1;
 	if (month == 2 && day > 28)
+	{
+		if (isLeapYear(year) && day == 29)
+			return 0;
 		return 1;
+	}
 	if ((month == 4 || month == 6 || month == 9 || month == 11) && day > 30)
 		return 1;
 	return 0;
 }
 
-// void	BitcoinExchange::print_result()
-// {
-// 	std::map<std::string, double>::iterator it;
-// 	for (it = _file_data.begin(); it != _file_data.end(); it++)
-// 	{
-// 		std::cout << it->first << " " << it->second << std::endl;
-// 	}
-// }
+std::string	BitcoinExchange::convert_date_to_string(int year, int month, int day)
+{
+	std::string date;
+	std::string tmp;
+	std::stringstream ss;
+	ss << year;
+	ss >> tmp;
+	date += tmp;
+	date += "-";
+	ss.clear();
+	if (month < 10)
+		date+= "0";
+	ss << month;
+	ss >> tmp;
+	date += tmp;
+	date += "-";
+	ss.clear();
+	if (day < 10)
+		date+= "0";
+	ss << day;
+	ss >> tmp;
+	date += tmp;
+	return date;
+}
 
-// void	BitcoinExchange::value_multipliedby_exchangerate(std::string date, double value)
-// {
-// 	std::map<std::string, double>::iterator it;
-// 	it = _database.find(date);
-// 	if (it != _database.end())
-// 	{
-// 		std::cout << date << " " << value * it->second << std::endl;
-// 	}
-// 	else
-// 	{
-// 		get_clousest_date(date);
-// 	}
-// }
+
+double	BitcoinExchange::get_clousest_date(std::string date, int year, int month, int day)
+{
+	std::string new_date = convert_date_to_string(year, month, day);
+	std::map<std::string, double>::iterator it;
+	it = _database.find(new_date);
+	if (it != _database.end())
+		return it->second;
+	else
+	{
+		if (day > 1)
+			return get_clousest_date(date, year, month, day - 1);
+		else if (month > 1)
+			return get_clousest_date(date, year, month - 1, 31);
+		else if (year > 2009)
+			return get_clousest_date(date, year - 1, 12, 31);
+		else
+		{
+			std::cerr << "Error: bad input => " << date << std::endl;
+			return -1;
+		}
+	}
+	return 0;
+}
+
+void	BitcoinExchange::value_multipliedby_exchangerate(std::string date, double value)
+{
+	int year;
+	int month;
+	int day;
+	std::string tmp;
+	std::stringstream ss(date);
+	std::getline(ss, tmp, '-');
+	std::stringstream convert(tmp);
+	convert >> year;
+	tmp.clear();
+	std::getline(ss, tmp, '-');
+	std::stringstream convert2(tmp);
+	convert2 >> month;
+	tmp.clear();
+	std::getline(ss, tmp);
+	std::stringstream convert3(tmp);
+	convert3 >> day;
+
+	std::map<std::string, double>::iterator it;
+	it = _database.find(date);
+	if (it != _database.end())
+		std::cout << date << " => " << value << " = " << value * it->second << std::endl;
+	else
+	{
+		double val = get_clousest_date(date, year, month, day);
+		if (val != -1)
+			std::cout << date << " => " << value << " = " << value * val << std::endl;
+		else
+			return;
+	}
+}
