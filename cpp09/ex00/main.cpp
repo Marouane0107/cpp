@@ -12,7 +12,6 @@ int main(int argc, char **argv)
     BitcoinExchange exchange;
     exchange.get_database(database);
     exchange.get_data(file);
-    
 
     return 0;
 }

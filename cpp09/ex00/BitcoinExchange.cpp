@@ -129,6 +129,15 @@ int BitcoinExchange::check_if_line_is_valid(std::string line)
 	return 0;
 }
 
+void	BitcoinExchange::check_empty_file(std::ifstream &file)
+{
+	if (file.peek() == std::ifstream::traits_type::eof())
+	{
+		std::cerr << "Error: file is empty." << std::endl;
+		exit(1);
+	}
+}
+
 void	BitcoinExchange::find_head_of_file(std::ifstream &file)
 {
 	std::string line;
@@ -167,6 +176,7 @@ void	BitcoinExchange::get_data(std::ifstream &file)
 		std::cerr << "Error: could not open file." << std::endl;
 		exit(1);
 	}
+	check_empty_file(file);
 	find_head_of_file(file);
 	while (std::getline(file, line))
 	{

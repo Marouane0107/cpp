@@ -31,6 +31,7 @@ class BitcoinExchange
 		double	get_clousest_date(std::string date, int year, int month, int day);
 		bool	isLeapYear(int year);
 		std::string	convert_date_to_string(int year, int month, int day);
+		void	check_empty_file(std::ifstream &file);
 };
 
 
